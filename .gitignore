@@ -1,0 +1,7 @@
+tools/
+tools.lnk
+local-demo/.venv/
+local-demo/logs/
+local-demo/.pytest_cache/
+local-demo/**/__pycache__/
+local-demo/*.db

@@ -1,0 +1,7 @@
+[
+  {"chunk_id":"k_001","document_id":"doc_spec","title":"轮胎规格说明","content":"以225/55R17为例：225表示胎面名义宽度约225毫米；55表示扁平比，即胎侧高度约为胎宽的55%；R表示子午线结构；17表示适配17英寸轮辋。载重指数和速度级别还需结合车辆要求确认。","keywords":["225/55R17","规格","扁平比"],"source_uri":"knowledge/tire_spec.md","updated_at":"2026-08-01"},
+  {"chunk_id":"k_002","document_id":"doc_maintenance","title":"轮胎更换与磨损检查","content":"轮胎没有对所有车辆都适用的固定更换年限。应综合检查磨耗标志、老化裂纹、鼓包、异常磨损、修补情况和制造日期。胎面达到磨耗标志或出现鼓包、露帘线等情况时，应停止继续使用并由专业人员检查。","keywords":["多久更换","磨损","鼓包","裂纹"],"source_uri":"knowledge/maintenance.md","updated_at":"2026-08-01"},
+  {"chunk_id":"k_003","document_id":"doc_pressure","title":"胎压检查","content":"胎压应以车辆制造商在车门框、油箱盖或用户手册标注的冷态推荐值为准，不应直接使用轮胎侧壁标注的最大压力作为日常标准。长途出行前应在冷态检查胎压。","keywords":["胎压","冷态","充气"],"source_uri":"knowledge/tire_pressure.md","updated_at":"2026-08-01"},
+  {"chunk_id":"k_004","document_id":"doc_repair","title":"轮胎修补原则","content":"是否可以修补取决于损伤位置、孔径、轮胎结构和既往修补情况。胎侧损伤、鼓包、露帘线或大范围破损通常不应仅靠普通补胎继续使用，应由专业人员现场检查。","keywords":["补胎","修补","胎侧"],"source_uri":"knowledge/repair.md","updated_at":"2026-08-01"},
+  {"chunk_id":"k_005","document_id":"doc_rotation","title":"轮胎换位与四轮定位","content":"定期轮胎换位有助于均匀磨损，但前后轮不同规格、单向花纹或特殊车辆需遵循厂家方案。出现方向跑偏、方向盘不正或异常偏磨时，应检查胎压、悬架和四轮定位。","keywords":["换位","四轮定位","偏磨"],"source_uri":"knowledge/rotation.md","updated_at":"2026-08-01"}
+]

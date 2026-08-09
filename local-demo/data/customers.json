@@ -1,0 +1,5 @@
+[
+  {"customer_id":"u_001","name_masked":"张*","region_id":"shanghai","member_level":"gold","vehicle_ids":["v_001"]},
+  {"customer_id":"u_002","name_masked":"李*","region_id":"beijing","member_level":"normal","vehicle_ids":["v_002"]},
+  {"customer_id":"u_003","name_masked":"王*","region_id":"shanghai","member_level":"silver","vehicle_ids":["v_003"]}
+]

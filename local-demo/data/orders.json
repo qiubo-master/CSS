@@ -1,0 +1,5 @@
+[
+  {"order_id":"o_001","customer_id":"u_001","sku_ids":["sku_001"],"status":"已预约","store_id":"store_sh_01","appointment_at":"2026-08-12 14:00","amount":1596.0,"updated_at":"2026-08-09T11:30:00+08:00"},
+  {"order_id":"o_002","customer_id":"u_002","sku_ids":["sku_003"],"status":"已完成","store_id":"store_bj_01","appointment_at":"2026-08-01 10:00","amount":1716.0,"updated_at":"2026-08-01T15:00:00+08:00"},
+  {"order_id":"o_003","customer_id":"u_003","sku_ids":["sku_004"],"status":"待付款","store_id":"store_sh_02","appointment_at":null,"amount":2796.0,"updated_at":"2026-08-09T12:00:00+08:00"}
+]

@@ -1,0 +1,4 @@
+[
+  {"campaign_id":"c_001","name":"轮胎满四条减100元（示例）","region_ids":["shanghai","beijing"],"status":"active","end_at":"2026-08-31 23:59","updated_at":"2026-08-09T09:00:00+08:00"},
+  {"campaign_id":"c_002","name":"新能源轮胎安装费优惠（示例）","region_ids":["shanghai"],"status":"active","end_at":"2026-08-20 23:59","updated_at":"2026-08-09T09:00:00+08:00"}
+]

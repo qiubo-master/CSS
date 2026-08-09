@@ -1,0 +1,7 @@
+[
+  {"sku_id":"sku_001","brand":"示例品牌A","series":"Comfort X1","width_mm":225,"aspect_ratio":55,"rim_inch":17,"load_index":"97","speed_rating":"W","run_flat":false,"features":["静音","舒适"],"sale_status":"on_sale","updated_at":"2026-08-09T10:00:00+08:00"},
+  {"sku_id":"sku_002","brand":"示例品牌B","series":"Touring T2","width_mm":225,"aspect_ratio":55,"rim_inch":17,"load_index":"101","speed_rating":"V","run_flat":false,"features":["耐磨","湿地"],"sale_status":"on_sale","updated_at":"2026-08-09T10:00:00+08:00"},
+  {"sku_id":"sku_003","brand":"示例品牌A","series":"Comfort X1","width_mm":215,"aspect_ratio":55,"rim_inch":17,"load_index":"94","speed_rating":"V","run_flat":false,"features":["静音"],"sale_status":"on_sale","updated_at":"2026-08-09T10:00:00+08:00"},
+  {"sku_id":"sku_004","brand":"示例品牌C","series":"EV Silent","width_mm":235,"aspect_ratio":45,"rim_inch":18,"load_index":"98","speed_rating":"Y","run_flat":false,"features":["新能源","低滚阻"],"sale_status":"on_sale","updated_at":"2026-08-09T10:00:00+08:00"},
+  {"sku_id":"sku_005","brand":"示例品牌D","series":"Sport S3","width_mm":245,"aspect_ratio":40,"rim_inch":19,"load_index":"98","speed_rating":"Y","run_flat":true,"features":["操控","防爆"],"sale_status":"on_sale","updated_at":"2026-08-09T10:00:00+08:00"}
+]

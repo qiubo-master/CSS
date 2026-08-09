@@ -1,0 +1,5 @@
+[
+  {"vehicle_id":"v_001","customer_id":"u_001","brand":"大众","model":"迈腾","year":2022,"width_mm":225,"aspect_ratio":55,"rim_inch":17,"verified":true},
+  {"vehicle_id":"v_002","customer_id":"u_002","brand":"丰田","model":"凯美瑞","year":2021,"width_mm":215,"aspect_ratio":55,"rim_inch":17,"verified":true},
+  {"vehicle_id":"v_003","customer_id":"u_003","brand":"特斯拉","model":"Model 3","year":2023,"width_mm":235,"aspect_ratio":45,"rim_inch":18,"verified":true}
+]
