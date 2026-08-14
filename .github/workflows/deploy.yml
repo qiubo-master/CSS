@@ -1,0 +1,62 @@
+name: ForgeOps Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Deployment action
+        required: true
+        default: deploy
+        type: choice
+        options: [deploy, rollback]
+
+concurrency:
+  group: css-autodl2-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
+        run: |
+          test -n "$SSH_PRIVATE_KEY" && test -n "$SSH_HOST_KEY"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_HOST_KEY" > ~/.ssh/known_hosts
+
+      - name: Upload release
+        if: inputs.action == 'deploy'
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+          USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          tar --exclude=.git -czf /tmp/css-release.tgz .
+          scp -i ~/.ssh/deploy_key -P "$PORT" /tmp/css-release.tgz "$USER@$HOST:/tmp/css-${GITHUB_SHA}.tgz"
+
+      - name: Deploy or rollback on AutoDL
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$PORT" "$USER@$HOST" \
+            "ACTION='$ACTION' RELEASE_SHA='$GITHUB_SHA' bash -s" < local-demo/cloud/deploy-cloud.sh
+
+      - name: Verify service health
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+          USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$PORT" "$USER@$HOST" \
+            "curl --fail --silent --show-error --max-time 15 http://127.0.0.1:6006/api/v1/health"
