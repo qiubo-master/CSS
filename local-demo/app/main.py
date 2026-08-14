@@ -4,15 +4,17 @@ import json
 import asyncio
 import time
 import uuid
+import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 
 from .config import ROOT, settings
 from .graph import TireServiceGraph
 from .repositories import KnowledgeRepository, MockRepository
+from .foundation import FoundationClient
 from .schemas import (
     CreateConversationRequest,
     CreateConversationResponse,
@@ -27,8 +29,16 @@ app = FastAPI(title="轮胎智能客服本地 Demo", version="0.1.0")
 repo = MockRepository(settings.data_dir)
 knowledge = KnowledgeRepository(settings.data_dir)
 workflow = TireServiceGraph(repo, knowledge)
+foundation = FoundationClient()
 conversations: dict[str, dict[str, Any]] = {}
 message_cache: dict[str, MessageResponse] = {}
+UPLOAD_DIR = settings.data_dir / "uploads"
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+IMAGE_TYPES = {
+    "image/jpeg": (".jpg", (b"\xff\xd8\xff",)),
+    "image/png": (".png", (b"\x89PNG\r\n\x1a\n",)),
+    "image/webp": (".webp", (b"RIFF",)),
+}
 
 
 @app.get("/")
@@ -52,6 +62,58 @@ async def health():
     }
 
 
+@app.post("/api/v1/uploads/images", status_code=201)
+async def upload_image(
+    request: Request,
+    content_type: str | None = Header(default=None),
+    x_filename: str | None = Header(default=None),
+):
+    media_type = (content_type or "").split(";", 1)[0].lower()
+    image_type = IMAGE_TYPES.get(media_type)
+    if not image_type:
+        raise HTTPException(415, "Only JPEG, PNG and WebP images are supported")
+
+    content = bytearray()
+    async for chunk in request.stream():
+        content.extend(chunk)
+        if len(content) > MAX_IMAGE_BYTES:
+            raise HTTPException(413, "Image exceeds the 10 MB limit")
+    if not content:
+        raise HTTPException(400, "Image is empty")
+
+    suffix, signatures = image_type
+    if media_type == "image/webp":
+        valid_signature = content.startswith(signatures[0]) and content[8:12] == b"WEBP"
+    else:
+        valid_signature = any(content.startswith(signature) for signature in signatures)
+    if not valid_signature:
+        raise HTTPException(400, "File content does not match its image type")
+
+    image_id = f"img_{uuid.uuid4().hex}"
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    target = UPLOAD_DIR / f"{image_id}{suffix}"
+    target.write_bytes(content)
+    safe_name = Path(x_filename or target.name).name[:160]
+    return {
+        "image_id": image_id,
+        "filename": safe_name,
+        "content_type": media_type,
+        "size": len(content),
+        "url": f"/api/v1/uploads/images/{image_id}",
+        "vision_status": "pending",
+    }
+
+
+@app.get("/api/v1/uploads/images/{image_id}")
+async def get_uploaded_image(image_id: str):
+    if not re.fullmatch(r"img_[0-9a-f]{32}", image_id):
+        raise HTTPException(404, "Image not found")
+    matches = list(UPLOAD_DIR.glob(f"{image_id}.*")) if UPLOAD_DIR.exists() else []
+    if len(matches) != 1 or matches[0].suffix not in {".jpg", ".png", ".webp"}:
+        raise HTTPException(404, "Image not found")
+    return FileResponse(matches[0])
+
+
 @app.post("/api/v1/conversations", response_model=CreateConversationResponse)
 async def create_conversation(body: CreateConversationRequest):
     if not repo.get_customer(body.customer_id):
@@ -66,11 +128,28 @@ async def send_message(conversation_id: str, body: MessageRequest):
     conversation = conversations.get(conversation_id)
     if not conversation:
         raise HTTPException(404, "Conversation not found")
+    missing_images = [
+        image_id for image_id in body.image_ids
+        if not re.fullmatch(r"img_[0-9a-f]{32}", image_id)
+        or not any(UPLOAD_DIR.glob(f"{image_id}.*"))
+    ]
+    if missing_images:
+        raise HTTPException(400, {"message": "Unknown image attachment", "image_ids": missing_images})
     cache_key = f"{conversation_id}:{body.message_id}"
     if cache_key in message_cache:
         return message_cache[cache_key]
     trace_id = f"tr_{uuid.uuid4().hex[:12]}"
-    result = await workflow.invoke(body.text, conversation["customer_id"], trace_id)
+    visual_results = []
+    visual_error = None
+    if body.image_ids and foundation.enabled:
+        try:
+            for image_id in body.image_ids:
+                image_path = next(UPLOAD_DIR.glob(f"{image_id}.*"))
+                visual_results.append(await foundation.analyze(image_path, body.text))
+        except Exception as exc:
+            visual_error = f"{type(exc).__name__}: {exc}"
+    visual_result = visual_results[0] if visual_results else {}
+    result = await workflow.invoke(body.text, conversation["customer_id"], trace_id, visual_result)
     response = MessageResponse(
         answer_id=f"a_{uuid.uuid4().hex[:12]}",
         conversation_id=conversation_id,
@@ -81,9 +160,16 @@ async def send_message(conversation_id: str, body: MessageRequest):
         handoff_id=result.get("handoff_id"),
         trace_id=trace_id,
         timings_ms=result.get("timings_ms", {}),
-        debug={"route": result.get("route", {}), "evidence_count": len(result.get("evidence", []))},
+        debug={
+            "route": result.get("route", {}),
+            "evidence_count": len(result.get("evidence", [])),
+            "image_ids": body.image_ids,
+            "vision_status": ("completed" if visual_results else "degraded" if body.image_ids else "not_requested"),
+            "vision_results": visual_results,
+            "vision_error": visual_error,
+        },
     )
-    conversation["messages"].append({"role": "user", "text": body.text})
+    conversation["messages"].append({"role": "user", "text": body.text, "image_ids": body.image_ids})
     conversation["messages"].append({"role": "assistant", "text": response.answer})
     message_cache[cache_key] = response
     return response

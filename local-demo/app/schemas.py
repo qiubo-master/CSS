@@ -17,6 +17,7 @@ class CreateConversationResponse(BaseModel):
 class MessageRequest(BaseModel):
     message_id: str
     text: str = Field(min_length=1, max_length=2000)
+    image_ids: list[str] = Field(default_factory=list, max_length=4)
 
 
 class Citation(BaseModel):

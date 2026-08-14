@@ -23,6 +23,8 @@ class GraphState(TypedDict, total=False):
     handoff_id: str | None
     citations: list[dict[str, Any]]
     timings_ms: dict[str, float]
+    visual_result: dict[str, Any]
+    visual_context: str
 
 
 class TireServiceGraph:
@@ -40,7 +42,9 @@ class TireServiceGraph:
         builder.add_node("generate", self.generate)
         builder.add_node("handoff", self.handoff)
         builder.add_node("verify", self.verify)
-        builder.add_edge(START, "risk_guard")
+        builder.add_node("visual_context", self.visual_context)
+        builder.add_edge(START, "visual_context")
+        builder.add_edge("visual_context", "risk_guard")
         builder.add_conditional_edges("risk_guard", self.after_risk, {"handoff": "handoff", "verify": "verify", "route": "route"})
         builder.add_conditional_edges("route", self.after_route, {"handoff": "handoff", "retrieve": "retrieve"})
         builder.add_edge("retrieve", "generate")
@@ -48,6 +52,18 @@ class TireServiceGraph:
         builder.add_edge("verify", END)
         builder.add_edge("handoff", END)
         return builder.compile()
+
+    async def visual_context(self, state: GraphState) -> GraphState:
+        visual = state.get("visual_result") or {}
+        if not visual:
+            return {}
+        detections = visual.get("detections", [])
+        blocks = visual.get("ocr_blocks", visual.get("ocr", []))
+        summary = visual.get("summary") or visual.get("description") or ""
+        labels = [str(item.get("label", "")) for item in detections[:12] if item.get("label")]
+        texts = [str(item.get("text", "")) for item in blocks[:20] if item.get("text")]
+        context = f"图像识别摘要：{summary}；检测对象：{', '.join(labels)}；OCR文字：{' '.join(texts)}"
+        return {"visual_context": context, "text": f"{state['text']}\n{context}"}
 
     async def risk_guard(self, state: GraphState) -> GraphState:
         text = state["text"]
@@ -160,7 +176,8 @@ class TireServiceGraph:
             "citations": [],
         }
 
-    async def invoke(self, text: str, customer_id: str, trace_id: str) -> GraphState:
+    async def invoke(self, text: str, customer_id: str, trace_id: str,
+                     visual_result: dict[str, Any] | None = None) -> GraphState:
         return await self.graph.ainvoke({
             "text": text,
             "customer_id": customer_id,
@@ -168,4 +185,5 @@ class TireServiceGraph:
             "timings_ms": {},
             "evidence": [],
             "citations": [],
+            "visual_result": visual_result or {},
         })

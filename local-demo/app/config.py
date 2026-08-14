@@ -18,6 +18,10 @@ class Settings:
     embed_model: str = os.getenv("OLLAMA_EMBED_MODEL", "qwen3-embedding:0.6b")
     ollama_timeout: float = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "45"))
     data_dir: Path = Path(os.getenv("DEMO_DATA_DIR", str(ROOT / "data"))).resolve()
+    foundation_base_url: str = os.getenv("FOUNDATION_BASE_URL", "http://127.0.0.1:6008")
+    foundation_app_id: str = os.getenv("FOUNDATION_APP_ID", "customer-service")
+    foundation_api_key: str = os.getenv("FOUNDATION_API_KEY", "")
+    foundation_timeout: float = float(os.getenv("FOUNDATION_TIMEOUT_SECONDS", "180"))
 
 
 settings = Settings()

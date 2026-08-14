@@ -69,11 +69,12 @@ class LocalLLM:
                         "messages": [{"role": "user", "content": prompt}],
                         "stream": False,
                         "think": False,
-                        "options": {"temperature": 0.1, "num_ctx": 3072, "num_predict": 300},
+                        "options": {"temperature": 0.1, "num_ctx": 3072, "num_predict": 500},
                     },
                 )
                 response.raise_for_status()
-                return response.json()["message"]["content"].strip()
+                content = response.json()["message"]["content"].strip()
+                return re.sub(r"^<think>[\s\S]*?</think>\s*", "", content).strip()
         return self._mock_answer(text, intent, evidence)
 
     async def _ollama_json(self, prompt: str) -> dict[str, Any] | None:

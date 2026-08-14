@@ -28,6 +28,37 @@ def test_health():
     assert response.json()["mock_counts"]["products"] >= 5
 
 
+def test_image_upload_and_message_attachment():
+    png = b"\x89PNG\r\n\x1a\n" + b"demo-image"
+    upload = client.post(
+        "/api/v1/uploads/images",
+        content=png,
+        headers={"Content-Type": "image/png", "X-Filename": "tire.png"},
+    )
+    assert upload.status_code == 201
+    image = upload.json()
+    assert image["vision_status"] == "pending"
+    assert client.get(image["url"]).content == png
+
+    cid = conversation()
+    response = client.post(
+        f"/api/v1/conversations/{cid}/messages",
+        json={"message_id": "image_1", "text": "请检查这张轮胎照片", "image_ids": [image["image_id"]]},
+    )
+    assert response.status_code == 200
+    assert response.json()["debug"]["image_ids"] == [image["image_id"]]
+    assert response.json()["debug"]["vision_status"] == "degraded"
+
+
+def test_image_upload_rejects_invalid_content():
+    response = client.post(
+        "/api/v1/uploads/images",
+        content=b"not-a-png",
+        headers={"Content-Type": "image/png", "X-Filename": "fake.png"},
+    )
+    assert response.status_code == 400
+
+
 def test_tire_knowledge():
     result = ask("225/55R17是什么意思？")
     assert result["intent"] == "tire_knowledge"
