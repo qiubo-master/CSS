@@ -36,7 +36,7 @@
 <body>
 <main>
   <header><h1>轮胎智能客服 Demo</h1><small id="health">正在检查服务…</small></header>
-  <div id="messages"><div class="msg bot">您好，我可以回答轮胎知识、车型适配、价格、活动和订单问题。现在也可以上传轮胎照片，为后续多模态识别做准备。</div></div>
+  <div id="messages"><div class="msg bot">您好，我可以回答轮胎知识、车型适配、价格、活动和订单问题，也可以识别轮胎照片。</div></div>
   <div class="quick">
     <button data-q="225/55R17是什么意思？">规格解释</button>
     <button data-q="我的车换一套轮胎多少钱？">车型价格</button>
@@ -91,7 +91,7 @@ fileInput.addEventListener('change',()=>{
   renderAttachments();
 });
 async function openConversation(){const r=await fetch('/api/v1/conversations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_id:'u_001'})});if(!r.ok)throw new Error(`创建会话失败 HTTP ${r.status}`);conversationId=(await r.json()).conversation_id;}
-async function boot(){setReady(false);const h=await fetch('/api/v1/health').then(r=>r.json());document.getElementById('health').textContent=`LLM：${h.ollama_available?'Ollama':'Mock fallback'} · 向量：${h.vector_backend}`;await openConversation();setReady(true);}
+async function boot(){setReady(false);const h=await fetch('/api/v1/health').then(r=>r.json());document.getElementById('health').textContent=`LLM：${h.ollama_available?'Ollama':'Mock fallback'} · 视觉：${h.vision_available?(h.vision_model||h.vision_backend):'不可用'}`;await openConversation();setReady(true);}
 async function uploadImages(images){
   const uploaded=[];
   for(const image of images){
@@ -115,11 +115,11 @@ async function ask(rawText){
   try{
     const uploaded=await uploadImages(selected);
     selected.forEach(image=>URL.revokeObjectURL(image.preview));
-    add(text,'user',uploaded.length?'图片已上传，等待视觉能力接入': '',uploaded);
+    add(text,'user',uploaded.length?'图片已上传，正在识别': '',uploaded);
     const bot=add('正在处理…','bot'); let answer=''; const citations=[];
     const r=await requestAnswer(text,uploaded.map(x=>x.image_id)); if(!r.ok)throw new Error(`请求失败 HTTP ${r.status}`);
     const reader=r.body.getReader(),decoder=new TextDecoder();let buffer='';
-    while(true){const {value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const blocks=buffer.split('\n\n');buffer=blocks.pop();for(const block of blocks){let event='',data='';for(const line of block.split('\n')){if(line.startsWith('event:'))event=line.slice(6).trim();if(line.startsWith('data:'))data+=line.slice(5).trim();}if(!data)continue;const payload=JSON.parse(data);if(event==='answer.delta'){answer+=payload.text;bot.content.textContent=answer;}if(event==='citation')citations.push(payload);if(event==='answer.completed'){const meta=document.createElement('div');meta.className='meta';meta.textContent=`intent=${payload.intent} · trace=${payload.trace_id}${uploaded.length?' · vision=pending':''}`;bot.el.appendChild(meta);if(citations.length){const c=document.createElement('div');c.className='citations';c.textContent='来源：'+citations.map(x=>x.title).join('；');bot.el.appendChild(c);}}}messages.scrollTop=messages.scrollHeight;}
+    while(true){const {value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const blocks=buffer.split('\n\n');buffer=blocks.pop();for(const block of blocks){let event='',data='';for(const line of block.split('\n')){if(line.startsWith('event:'))event=line.slice(6).trim();if(line.startsWith('data:'))data+=line.slice(5).trim();}if(!data)continue;const payload=JSON.parse(data);if(event==='answer.delta'){answer+=payload.text;bot.content.textContent=answer;}if(event==='citation')citations.push(payload);if(event==='answer.completed'){const meta=document.createElement('div');meta.className='meta';const vision=payload.debug?.vision_status;meta.textContent=`intent=${payload.intent} · trace=${payload.trace_id}${uploaded.length?` · vision=${vision}`:''}`;bot.el.appendChild(meta);if(vision==='degraded'){const warning=document.createElement('div');warning.className='meta';warning.textContent=`图片识别失败：${payload.debug?.vision_error||'视觉服务不可用'}`;bot.el.appendChild(warning);}if(citations.length){const c=document.createElement('div');c.className='citations';c.textContent='来源：'+citations.map(x=>x.title).join('；');bot.el.appendChild(c);}}}messages.scrollTop=messages.scrollHeight;}
   }catch(error){add(`请求失败：${error.message}`,'bot');}finally{setReady(true);input.focus();}
 }
 document.getElementById('form').addEventListener('submit',e=>{e.preventDefault();ask(input.value);});

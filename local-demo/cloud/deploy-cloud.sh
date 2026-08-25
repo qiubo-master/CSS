@@ -38,6 +38,9 @@ else
 fi
 
 fuser -k 6006/tcp 2>/dev/null || true
+# Restart Ollama so a deployment that upgrades the runtime does not keep the
+# previously running, model-incompatible server process.
+fuser -k 11434/tcp 2>/dev/null || true
 APP_ROOT="$CURRENT/local-demo" bash "$CURRENT/local-demo/cloud/start-cloud.sh"
 
 # AutoDL runs this launcher after an instance restart; keep it on the active release.

@@ -7,8 +7,11 @@ LOG_ROOT="$DATA_ROOT/logs"
 MODEL_ROOT="$DATA_ROOT/models"
 APP_PORT="${APP_PORT:-6006}"
 OLLAMA_COMPAT_ROOT="${OLLAMA_COMPAT_ROOT:-$DATA_ROOT/ollama-v0.6.8}"
+OLLAMA_CURRENT_ROOT="${OLLAMA_CURRENT_ROOT:-$DATA_ROOT/ollama-latest-candidate}"
 
-if [[ -x "$OLLAMA_COMPAT_ROOT/bin/ollama" ]]; then
+if [[ -x "$OLLAMA_CURRENT_ROOT/bin/ollama" ]]; then
+  OLLAMA_BIN="$OLLAMA_CURRENT_ROOT/bin/ollama"
+elif [[ -x "$OLLAMA_COMPAT_ROOT/bin/ollama" ]]; then
   OLLAMA_BIN="$OLLAMA_COMPAT_ROOT/bin/ollama"
 else
   OLLAMA_BIN="${OLLAMA_BIN:-ollama}"
@@ -39,6 +42,7 @@ if ! curl -fsS "http://127.0.0.1:$APP_PORT/api/v1/health" >/dev/null 2>&1; then
   OLLAMA_BASE_URL="http://127.0.0.1:11434" \
   OLLAMA_CHAT_MODEL="${OLLAMA_CHAT_MODEL:-qwen3:8b}" \
   OLLAMA_EMBED_MODEL="${OLLAMA_EMBED_MODEL:-qwen3-embedding:0.6b}" \
+  OLLAMA_VISION_MODEL="${OLLAMA_VISION_MODEL:-qwen3-vl:4b-instruct-q4_K_M}" \
   OLLAMA_TIMEOUT_SECONDS="${OLLAMA_TIMEOUT_SECONDS:-180}" \
   DEMO_DATA_DIR="$APP_ROOT/data" \
     nohup "$APP_ROOT/.venv/bin/python" -m uvicorn app.main:app \

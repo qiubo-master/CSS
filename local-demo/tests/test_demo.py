@@ -1,5 +1,9 @@
+import base64
+import json
+
 from fastapi.testclient import TestClient
 
+from app.foundation import FoundationClient
 from app.main import app, workflow
 
 
@@ -28,7 +32,11 @@ def test_health():
     assert response.json()["mock_counts"]["products"] >= 5
 
 
-def test_image_upload_and_message_attachment():
+def test_image_upload_and_message_attachment(monkeypatch):
+    async def vision_unavailable(_self):
+        return False
+
+    monkeypatch.setattr(FoundationClient, "available", vision_unavailable)
     png = b"\x89PNG\r\n\x1a\n" + b"demo-image"
     upload = client.post(
         "/api/v1/uploads/images",
@@ -37,7 +45,7 @@ def test_image_upload_and_message_attachment():
     )
     assert upload.status_code == 201
     image = upload.json()
-    assert image["vision_status"] == "pending"
+    assert image["vision_status"] == "unavailable"
     assert client.get(image["url"]).content == png
 
     cid = conversation()
@@ -57,6 +65,44 @@ def test_image_upload_rejects_invalid_content():
         headers={"Content-Type": "image/png", "X-Filename": "fake.png"},
     )
     assert response.status_code == 400
+
+
+async def test_ollama_vision_sends_image_and_parses_json(monkeypatch, tmp_path):
+    image = tmp_path / "tire.png"
+    image.write_bytes(b"real-image-bytes")
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"message": {"content": json.dumps({
+                "summary": "可见轮胎胎面",
+                "detections": [{"label": "轮胎"}],
+                "ocr_blocks": [],
+                "safety_risks": [],
+            }, ensure_ascii=False)}}
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def post(self, url, json):
+            captured.update({"url": url, "payload": json})
+            return FakeResponse()
+
+    monkeypatch.setattr("app.foundation.httpx.AsyncClient", lambda **_: FakeClient())
+    result = await FoundationClient()._analyze_with_ollama(image, "检查磨损")
+
+    assert captured["url"].endswith("/api/chat")
+    assert captured["payload"]["messages"][0]["images"] == [
+        base64.b64encode(image.read_bytes()).decode("ascii")
+    ]
+    assert result["summary"] == "可见轮胎胎面"
 
 
 def test_tire_knowledge():
