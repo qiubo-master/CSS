@@ -53,6 +53,9 @@ async def health():
         "llm_mode": settings.llm_mode,
         "ollama_available": await workflow.llm.available(),
         "chat_model": settings.chat_model,
+        "vision_backend": foundation.backend if foundation.enabled else "disabled",
+        "vision_model": settings.vision_model if foundation.enabled and foundation.backend == "ollama" else None,
+        "vision_available": await foundation.available(),
         "vector_backend": "ollama-vector-json" if knowledge.vectors else "lexical-fallback (Milvus adapter boundary)",
         "mock_counts": {
             "customers": len(repo.customers), "vehicles": len(repo.vehicles),
@@ -100,7 +103,7 @@ async def upload_image(
         "content_type": media_type,
         "size": len(content),
         "url": f"/api/v1/uploads/images/{image_id}",
-        "vision_status": "pending",
+        "vision_status": "ready" if await foundation.available() else "unavailable",
     }
 
 
